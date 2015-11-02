@@ -55,8 +55,8 @@ public class PlayerController : MonoBehaviour {
 	void Update () {
 		bool moveLeft = Input.GetKey (KeyCode.A);
 		bool moveRight = Input.GetKey (KeyCode.D);
-		bool jump = Input.GetKeyDown (KeyCode.Space) || (Input.GetButtonDown("Fire1") && Input.GetAxis("Vertical") >= 0);
-		bool moveDown = Input.GetKeyDown (KeyCode.S) || (Input.GetButtonDown("Fire1") && Input.GetAxis("Vertical") < 0);
+		bool jump = Input.GetKeyDown (KeyCode.Space) || (Input.GetButtonDown("Fire1") && Input.GetAxis("Vertical") >= 0f);
+		bool moveDown = Input.GetKeyDown (KeyCode.S) || (Input.GetButtonDown("Fire1") && Input.GetAxis("Vertical") < -0.3f);
 		bool shoot = Input.GetKey(KeyCode.O) || Input.GetButton("Fire3");
 		float controllerHorizontal = Input.GetAxis("Horizontal");
 
@@ -159,4 +159,12 @@ public class PlayerController : MonoBehaviour {
 		}
 	}
 
+	void OnTriggerEnter2D (Collider2D coll) {
+		GameObject obj = coll.gameObject;
+		if (obj.tag == "EnemyBullet") {
+			print("Shot!");
+//			health--;
+			Destroy(obj);
+		}
+	}
 }
