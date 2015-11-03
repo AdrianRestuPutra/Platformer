@@ -45,7 +45,6 @@ public class PlayerController : MonoBehaviour {
 	}
 
 	void FixedUpdate () {
-//		GravityEffect ();
 		UpdateRaySource ();
 		CheckGround ();
 		MovePlayer ();
@@ -87,15 +86,14 @@ public class PlayerController : MonoBehaviour {
 		}
 
 		if (shoot) {
+			animator.SetBool("IsShooting", true);
 			StartCoroutine(SpawnBullet());
-		}
-	}
-
-	private void GravityEffect () {
-//		transform.position += Vector3.down * gravity * Time.deltaTime;
+		} else animator.SetBool("IsShooting", false);
 	}
 
 	private void MovePlayer () {
+		playerRigidBody.velocity = Vector2.ClampMagnitude (playerRigidBody.velocity, 60f);
+
 		if (movement != Vector3.zero) {
 			animator.SetBool("IsMoving", true);
 			transform.position += movement * speed * Time.deltaTime * 3f;
