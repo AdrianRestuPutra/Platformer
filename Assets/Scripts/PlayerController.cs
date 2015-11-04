@@ -22,6 +22,7 @@ public class PlayerController : MonoBehaviour {
 	private bool isFacingRight;
 	private bool onGround;
 	private bool onUpperPlatform;
+	private bool collideWithStairs, onStairs;
 	private bool canShoot;
 
 
@@ -42,6 +43,8 @@ public class PlayerController : MonoBehaviour {
 		playerCollider = GetComponent<BoxCollider2D> ();
 		isFacingRight = true;
 		canShoot = true;
+		collideWithStairs = false;
+		onStairs = false;
 	}
 
 	void FixedUpdate () {
@@ -54,35 +57,68 @@ public class PlayerController : MonoBehaviour {
 	void Update () {
 		bool moveLeft = Input.GetKey (KeyCode.A);
 		bool moveRight = Input.GetKey (KeyCode.D);
-		bool jump = Input.GetKeyDown (KeyCode.Space) || (Input.GetButtonDown("Fire1") && Input.GetAxis("Vertical") >= 0f);
-		bool moveDown = Input.GetKeyDown (KeyCode.S) || (Input.GetButtonDown("Fire1") && Input.GetAxis("Vertical") < -0.3f);
-		bool shoot = Input.GetKey(KeyCode.O) || Input.GetButton("Fire3");
+		bool jump = !Input.GetKey (KeyCode.S) && Input.GetKeyDown (KeyCode.Space) || (Input.GetButtonDown("Fire1") && Input.GetAxis("Vertical") >= 0f);
+		bool jumpDown = Input.GetKey (KeyCode.S) && Input.GetKeyDown (KeyCode.Space) || (Input.GetButtonDown("Fire1") && Input.GetAxis("Vertical") < -0.3f);
+		bool moveDown = Input.GetKey (KeyCode.S) || Input.GetAxis("Vertical") < 0f;
+		bool moveUp = Input.GetKey (KeyCode.W) || Input.GetAxis("Vertical") > 0f;
+		bool shoot = Input.GetKey (KeyCode.O) || Input.GetButton("Fire3");
+		bool use = Input.GetKeyDown (KeyCode.E) || Input.GetButtonDown("Fire2");
 		float controllerHorizontal = Input.GetAxis("Horizontal");
 
 		movement = Vector3.zero;
 		if (moveLeft || controllerHorizontal < 0) {
-			movement.x = -1f;
 			if(isFacingRight) {
 				isFacingRight = false;
 				transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
-			}
+			} else movement.x = -1f;
 		}
 		if (moveRight || controllerHorizontal > 0) {
-			movement.x = 1f;
 			if(!isFacingRight) {
 				isFacingRight = true;
 				transform.localRotation = Quaternion.Euler(0f, 0f, 0f);
+			} else movement.x = 1f;
+
+		}
+		if (jump) {
+			if(onStairs) {
+				collideWithStairs = false;
+				onStairs = false;
+				playerRigidBody.isKinematic = false;
+				playerRigidBody.AddForce(Vector2.up * jumpForce * 100);
+			} else if(onGround){
+				playerRigidBody.AddForce(Vector2.up * jumpForce * 200);
 			}
 		}
-		if (jump && onGround) {
-			print("jump");
-			playerRigidBody.AddForce(Vector2.up * jumpForce * 200);
-		}
 
-		if (moveDown) {
+		if (jumpDown) {
 			GameObject platform = GetPlatform();
 			if(IsUpperPlatform(platform))
 				StartCoroutine (DisableCollider());
+		}
+
+		if (use) {
+			if(collideWithStairs) {
+				onStairs = true;
+				playerRigidBody.isKinematic = true;
+			}
+		}
+
+		if (moveDown && onStairs) {
+//			if(!onStairs) {
+//				// TODO set animation stair
+//				onStairs = true;
+//				playerRigidBody.isKinematic = true;
+//			}
+			movement.y = -1f;
+		}
+
+		if (moveUp && onStairs) {
+//			if(!onStairs) {
+//				// TODO set animation stair
+//				onStairs = true;
+//				playerRigidBody.isKinematic = true;
+//			}
+			movement.y = 1f;
 		}
 
 		if (shoot) {
@@ -103,7 +139,6 @@ public class PlayerController : MonoBehaviour {
 	}
 
 	void UpdateRaySource () {
-//		Bounds bound = GetComponent<PolygonCollider2D> ().bounds;
 		Bounds bound = GetComponent<BoxCollider2D> ().bounds;
 		raySource = new Vector2 (bound.center.x, bound.min.y);
 	}
@@ -111,7 +146,7 @@ public class PlayerController : MonoBehaviour {
 	private void CheckGround () {
 		RaycastHit2D hit = Physics2D.Raycast (raySource, Vector2.down, rayLength, collisionMask);
 		Debug.DrawLine (raySource, raySource + (Vector2.down * rayLength), Color.yellow);
-		if (hit) {
+		if (hit && playerRigidBody.velocity.y <= 0) {
 			onGround = true;
 			animator.SetBool ("IsFalling", false);
 		} else {
@@ -160,9 +195,21 @@ public class PlayerController : MonoBehaviour {
 	void OnTriggerEnter2D (Collider2D coll) {
 		GameObject obj = coll.gameObject;
 		if (obj.tag == "EnemyBullet") {
-			print("Shot!");
 //			health--;
 			Destroy(obj);
+		}
+
+		if (obj.tag == "Stairs") {
+			collideWithStairs = true;
+		}
+	}
+
+	void OnTriggerExit2D (Collider2D coll) {
+		GameObject obj = coll.gameObject;
+		if (obj.tag == "Stairs") {
+			collideWithStairs = false;
+			onStairs = false;
+			playerRigidBody.isKinematic = false;
 		}
 	}
 }
